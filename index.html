@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>FireInfo</title>
+
+    <!-- Core CSS -->
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="css/typeahead.js-bootstrap.css" rel="stylesheet" type="text/css"> <!--https://github.com/jharding/typeahead.js-bootstrap.css-->
+    <link href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.css" rel="stylesheet" type="text/css">
+    <!--[if lte IE 8]>
+        <link href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" rel="stylesheet" type="text/css">
+        <link href="http://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome-ie7.min.css" rel="stylesheet">
+    <![endif]-->
+
+    <!-- Custom styles for this template -->
+    <style>
+        html, body, #map {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+        label {
+            font-weight: normal;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            margin: 0;
+        }
+        #loading {
+            position: absolute;
+            width: 220px;
+            height: 19px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -110px;
+            z-index: 20001;
+        }
+        .navbar .navbar-brand {
+            font-weight: bold;
+            font-size: 25px;
+            color: white;
+        }
+        .navbar {
+            opacity: 0.9;
+        }
+        .tt-dropdown-menu {
+            overflow: auto;
+        }
+        .tt-hint, .tt-query {
+            display: block;
+            width: 100%;
+            height: 34px;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .typeahead-header {
+            margin: 0 5px 5px 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        .search-container {
+            width: 250px;
+        }
+        #searchbox {
+            -webkit-border-top-left-radius: 4px;
+            -webkit-border-bottom-left-radius: 4px;
+            -moz-border-top-left-radius: 4px;
+            -moz-border-bottom-left-radius: 4px;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+        }
+        .leaflet-top {
+            top: 50px;
+        }
+        .leaflet-control-layers-base input, .leaflet-control-layers-overlays input {
+            float: left;
+            margin-right: 6px;
+        }
+        .leaflet-control-layers-expanded {
+            opacity: 0.9;
+        }
+        .leaflet-popup-content {
+            margin-top: 14px;
+            margin-bottom: 0px;
+            margin-left: 20px;
+            margin-right: 20px;
+        }
+        @media (max-width: 992px) {
+            .navbar .navbar-brand {
+                font-size: 18px;
+                float: left;
+            }
+            .search-container {
+                width: 150px;
+            }
+            .leaflet-control-attribution {
+                display: none;
+            }
+        }
+        @media (max-width: 768px){
+            .search-container {
+                width: 100%;
+            }
+        }
+        /* Print Handling */
+        @media print {
+            .navbar {
+                display: none !important;
+            }
+            .leaflet-control-container {
+                display: none !important;
+            }
+        }
+    </style>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.2/html5shiv.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/respond.js/1.2.0/respond.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">FireInfo</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" onclick="$('#aboutModal').modal('show'); return false;"><i class="icon-question-sign" style="color: white"></i>&nbsp;&nbsp;About</a></li>
+                <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" onclick="$('#contactModal').modal('show'); return false;"><i class="icon-envelope" style="color: white"></i>&nbsp;&nbsp;Contact</a></li>
+                <li class="dropdown">
+                    <a id="toolsDrop" href="#" role="button" class="dropdown-toggle" data-toggle="dropdown"><i class="icon-globe" style="color: white"></i>&nbsp;&nbsp;Tools <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#" onclick="map.fitBounds(boroughs.getBounds()); return false;"><i class="icon-fullscreen"></i>&nbsp;&nbsp;Zoom To Full Extent</a></li>
+                            <li><a href="#" onclick="$('#legendModal').modal('show'); return false;"><i class="icon-picture"></i>&nbsp;&nbsp;Show Legend</a></li>
+                            <li class="divider"></li>
+                                <li><a href="#" onclick="$('#loginModal').modal('show'); return false;"><i class="icon-user"></i>&nbsp;&nbsp;Login</a></li>
+                        </ul>
+                </li>
+                <li><a href="https://github.com/oeon/fire-info" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="icon-github-alt" style="color: white"></i>&nbsp;&nbsp;Fork me on GitHub</a></li>
+            </ul>
+            <form class="navbar-form navbar-right">
+                <div class="input-group search-container">
+                    <input id="searchbox" type="text" class="form-control" placeholder="Search">
+                    <span class="input-group-addon"><i class="icon-search"></i></span>
+                </div>
+            </form>
+        </div><!--/.navbar-collapse -->
+    </div>
+
+    <div id="map"></div>
+    <div id="loading" style="display:block;">
+        <div class="loading-indicator">
+            <div class="progress progress-striped active">
+                <div class="progress-bar progress-bar-info" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="aboutModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Welcome to the BootLeaf template!</h4>
+                </div>
+
+                <div class="modal-body">
+                     <ul id="aboutTabs" class="nav nav-tabs">
+                        <li class="active"><a href="#about" data-toggle="tab"><i class="icon-question-sign"></i>&nbsp;About the project</a></li>
+                        <li><a href="#disclaimer" data-toggle="tab"><i class="icon-exclamation-sign"></i>&nbsp;Disclaimer</a></li>
+                    </ul>
+                    <div id="aboutTabsContent" class="tab-content" style="padding-top: 10px;">
+                        <div class="tab-pane fade active in" id="about">
+                            <p>A simple template for building web mapping applications with <a href="http://getbootstrap.com/">Bootstrap 3</a> and <a href="http://leafletjs.com/" target="_blank">Leaflet</a>.</p>
+                            <div class="panel panel-primary">
+                                <div class="panel-heading">
+                                    Features
+                                </div>
+                                <ul class="list-group">
+                                    <li class="list-group-item">Fullscreen mobile-friendly map template with responsive navbar and modal placeholders</li>
+                                    <li class="list-group-item">jQuery loading of external GeoJSON files</li>
+                                    <li class="list-group-item">Elegant client-side multi-layer feature search with autocomplete using <a href="http://twitter.github.io/typeahead.js/" target="_blank">typeahead.js</a></li>
+                                    <li class="list-group-item">Integration of Bootstrap tables into Leaflet popups</li>
+                                    <li class="list-group-item">Logic for minimizing layer control and removing scale control on small screens</li>
+                                    <li class="list-group-item">Marker icons included in layer control</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade text-danger" id="disclaimer">
+                            <p>The data provided on this site is for informational and planning purposes only.</p>
+                            <p>Absolutely no accuracy or completeness guarantee is implied or intended. All information on this map is subject to such variations and corrections as might result from a complete title search and/or accurate field survey.</p>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="modal fade" id="contactModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Contact Us!</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="contact-form">
+                        <fieldset>
+                            <div class="form-group">
+                                <label for="name">Name:</label>
+                                <input type="text" class="form-control" id="name">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email:</label>
+                                <input type="text" class="form-control" id="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="comment">Comment:</label>
+                                <textarea class="form-control" rows="3" id="comment"></textarea>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary pull-right" data-dismiss="modal">Submit</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="modal fade" id="legendModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Map Legend</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Map Legend goes here...</p>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="modal fade" id="loginModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Login</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="contact-form">
+                        <fieldset>
+                            <div class="form-group">
+                                <label for="name">Username:</label>
+                                <input type="text" class="form-control" id="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Password:</label>
+                                <input type="password" class="form-control" id="password">
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary pull-right" data-dismiss="modal">Login</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/typeahead.min.js"></script> <!--https://github.com/twitter/typeahead.js/-->
+    <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
+    <script type="text/javascript" src="js/lvector.js"></script>
+    <script type="text/javascript">
+        var map = L.map('map').setView([41, -111], 5);
+        L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            subdomains: ["otile1", "otile2", "otile3", "otile4"],
+            attribution: 'Tiles courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">. Map data (c) <a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> contributors, CC-BY-SA.'
+        }).addTo(map);
+
+        // Basemap Layers
+        /*var mapquestOSM = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            subdomains: ["otile1", "otile2", "otile3", "otile4"],
+            attribution: 'Tiles courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">. Map data (c) <a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> contributors, CC-BY-SA.'
+        });*/
+        var mapquestOAM = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg", {
+            maxZoom: 18,
+            subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"],
+            attribution: 'Tiles courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a>. Portions Courtesy NASA/JPL-Caltech and U.S. Depart. of Agriculture, Farm Service Agency'
+        });
+        var mapquestHYB = L.layerGroup([L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg", {
+            maxZoom: 18,
+            subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"]
+        }), L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/hyb/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"],
+            attribution: 'Labels courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">. Map data (c) <a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> contributors, CC-BY-SA. Portions Courtesy NASA/JPL-Caltech and U.S. Depart. of Agriculture, Farm Service Agency'
+        })]);
+
+        // Overlay Layers
+        var fire_points = new lvector.AGS({
+            url: "http://wildfire.cr.usgs.gov/ArcGIS/rest/services/geomac_fires/MapServer/0",
+            fields: "*",
+            scaleRange: [4, 20],
+            showAll: true,
+            symbology: {
+                type: "single",
+                vectorOptions: {
+                    weight: 4,
+                    opacity: 0.6,
+                    color: "#FF3B30"
+                }
+            }, popupTemplate: "<h3>{fire_name}</h3><p>Report Date: {report_date}</p><p>Incident Number: {incident_number}</p>"}).setMap(map);
+
+        var fire_perims = new lvector.AGS({
+            url: "http://wildfire.cr.usgs.gov/ArcGIS/rest/services/geomac_dyn/MapServer/1",
+            fields: "*",
+            scaleRange: [4, 20],
+            showAll: true,
+            symbology: {
+                type: "single",
+                vectorOptions: {
+                    weight: 4,
+                    opacity: 0.6,
+                    color: "#FF3B30"
+                }
+            }, popupTemplate: "<h3>{fire_name}</h3><p>Acres: {acres}</p>"}).setMap(map);
+        
+        /*map = L.map("map", {
+            zoom: 10,
+            center: new L.LatLng(40.702222048446004, -73.979378),
+            layers: [mapquestOSM, boroughs, subwayLines, theaters]
+        });*/
+
+        // Hack to preserver layer order in Layer control
+        map.removeLayer(fire_perims);
+
+        var scaleControl = L.control.scale();
+
+        // Larger screens get scale control and expanded layer control
+        if (document.body.clientWidth <= 767) {
+        var isCollapsed = true;
+        } else {
+            var isCollapsed = false;
+            map.addControl(scaleControl);
+        };
+
+        var baseLayers = {
+            "Streets": mapquestOSM,
+            "Imagery": mapquestOAM,
+            "Hybrid": mapquestHYB
+        };
+
+        var overlays = {
+            "GeoMAC fire points": fire_points,
+            "NIFC fire perimeters": fire_perims
+        };
+
+        var layerControl = L.control.layers(baseLayers, overlays, {
+            collapsed: isCollapsed
+        }).addTo(map);
+
+        /*
+        // Highlight search box text on click
+        $("#searchbox").click(function () {
+            $(this).select();
+        });
+
+        // Typeahead search functionality
+        $(document).one("ajaxStop", function() {
+            $('#loading').hide();
+            $('#searchbox').typeahead([{
+                name: 'Boroughs',
+                local: boroughSearch,
+                minLength: 2,
+                header: '<h4 class="typeahead-header">Boroughs</h4>'
+            },{
+                name: 'Theaters',
+                local: theaterSearch,
+                minLength: 2,
+                limit: 10,
+                header: '<h4 class="typeahead-header"><img src="img/theater.png" width="24" height="28">&nbsp;Theaters</h4>'
+            },{
+                name: 'Museums',
+                local: museumSearch,
+                minLength: 2,
+                limit: 10,
+                header: '<h4 class="typeahead-header"><img src="img/museum.png" width="24" height="28">&nbsp;Museums</h4>'
+            },{
+                name: 'GeoNames',
+                remote: {
+                    url: 'http://ws.geonames.org/searchJSON?featureClass=P&maxRows=5&countryCode=US&name_startsWith=%QUERY',
+                    beforeSend: function(jqXhr, settings) {
+                        settings.url += '&east='+map.getBounds().getEast()+'&west='+map.getBounds().getWest()+'&north='+map.getBounds().getNorth()+'&south='+map.getBounds().getSouth();
+                    },
+                    filter: function(parsedResponse) {
+                        var dataset = [];
+                        for(i = 0; i < parsedResponse.geonames.length; i++) {
+                            dataset.push({
+                                value: parsedResponse.geonames[i].name,
+                                tokens: [parsedResponse.geonames[i].name],
+                                layer: 'GeoNames',
+                                lat: parsedResponse.geonames[i].lat,
+                                lng: parsedResponse.geonames[i].lng
+                            });
+                        }
+                        return dataset;
+                    }
+                },
+                minLength: 2,
+                limit: 5,
+                header: '<h4 class="typeahead-header"><img src="img/globe.png" width="25" height="25">&nbsp;GeoNames Places</h4>'
+              }]).on('typeahead:selected', function (obj, datum) {
+                if (datum.layer === 'Boroughs') {
+                    map.fitBounds(datum.bounds);
+                };
+                if (datum.layer === 'Theaters') {
+                    if (!map.hasLayer(theaters)) {
+                        map.addLayer(theaters);
+                    };
+                    map.setView([datum.lat, datum.lng], 17);
+                    if (map._layers[datum.id]) {
+                        map._layers[datum.id].openPopup();
+                    };
+                };
+                if (datum.layer === 'Museums') {
+                    if (!map.hasLayer(museums)) {
+                        map.addLayer(museums);
+                    };
+                    map.setView([datum.lat, datum.lng], 17);
+                    if (map._layers[datum.id]) {
+                        map._layers[datum.id].openPopup();
+                    };
+                };
+                if (datum.layer === 'GeoNames') {
+                    map.setView([datum.lat, datum.lng], 14);
+                };
+            }).on('typeahead:initialized ', function () {
+                $('.tt-dropdown-menu').css('max-height', $(document).height()-$('.navbar').height()-20);
+            });
+        });
+        */
+
+        // Placeholder hack for IE
+        if (navigator.appName == "Microsoft Internet Explorer") {
+            $("input").each( function () {
+                if ($(this).val() == "" && $(this).attr("placeholder") != "") {
+                    $(this).val($(this).attr("placeholder"));
+                    $(this).focus(function () {
+                        if ($(this).val() == $(this).attr("placeholder")) $(this).val("");
+                    });
+                    $(this).blur(function () {
+                        if ($(this).val() == "") $(this).val($(this).attr("placeholder"));
+                    });
+                }
+            });
+        }
+    </script>
+  </body>
+</html>
